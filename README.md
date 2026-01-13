@@ -1,6 +1,6 @@
 # Trello Career Planner
 
-A command-line tool that generates a comprehensive Trello board for tech career planning. Creates a pre-populated board with lists and cards covering career goals, skills assessment, learning plans, networking strategies, and job search preparation.
+A command-line tool that generates a comprehensive Trello board for tech career planning using a hybrid weekly sprint workflow. Creates a pre-populated board with sprint-based task management alongside long-term career strategy and learning resources.
 
 ## Quick Start
 
@@ -22,10 +22,11 @@ That's it! The script handles everything: virtual environment, dependencies, and
 ## Features
 
 - **Zero-friction setup** - Single command handles venv, dependencies, and execution
-- Creates a fully populated Trello board with 7 lists and 25+ cards
-- Covers all aspects of tech career development
+- **Hybrid weekly sprint workflow** - Sprint columns for weekly execution + reference lists for strategy
+- Creates a fully populated Trello board with 8 lists and 21 cards
 - Color-coded labels for prioritization and tracking
 - Customizable board names
+- **Board deletion** - Interactive selection with confirmation safeguards
 - Dry-run mode to preview without creating
 - Credential verification
 
@@ -72,6 +73,15 @@ That's it! The script handles everything: virtual environment, dependencies, and
 # Verify credentials
 ./run.sh --verify-only
 
+# Delete a board (interactive selection)
+./run.sh --delete
+
+# Delete specific board by ID
+./run.sh --delete --board-id BOARD_ID
+
+# Delete without confirmation prompt (use with caution)
+./run.sh --delete --board-id BOARD_ID --yes
+
 # Show setup help
 ./run.sh --setup-help
 
@@ -106,26 +116,30 @@ deactivate
 
 ## Board Structure
 
-The generated board includes:
+The generated board uses a hybrid weekly sprint workflow:
 
-### Lists
+### Sprint Workflow Lists
 
-1. **Career Goals** - Define your 1-year and 5-year vision
-2. **Skills Assessment** - Inventory current skills and identify gaps
-3. **Learning & Development** - Courses, certifications, and projects
-4. **Networking** - Build connections and find mentors
-5. **Job Search Preparation** - Resume, portfolio, and interview prep
-6. **Weekly Actions** - Recurring tasks for consistent progress
-7. **Completed** - Archive for completed items
+1. **Sprint Backlog** - Tasks ready to be pulled into weekly sprints
+2. **This Week** - Current week's focused tasks
+3. **In Progress** - Active work (limit 2-3 for focus)
+4. **Blocked / Review** - Items waiting on dependencies or feedback
+5. **Done This Week** - Completed this sprint cycle
+
+### Reference Lists
+
+6. **Career Goals & Strategy** - Long-term vision, target roles, skills inventory
+7. **Learning Resources** - Courses, books, certifications, interview prep
+8. **Completed** - Archive for historical tracking
 
 ### Labels
 
 - **High Priority** (red) - Focus on these first
-- **In Progress** (yellow) - Currently working on
-- **Completed** (green) - Done
+- **Quick Win** (green) - Fast tasks for momentum
 - **Learning** (blue) - Educational activities
 - **Networking** (purple) - Relationship building
-- **Long Term** (orange) - Future goals
+- **Career Goal** (orange) - Strategic planning items
+- **Blocked** (yellow) - Items with dependencies
 
 ## Project Structure
 
@@ -141,7 +155,7 @@ trello-mentoring-generator/
 │       ├── credentials.py    # Credential management
 │       ├── generator.py      # Board generation logic
 │       └── template.py       # Career template definition
-├── tests/                    # Unit tests (92 tests, 100% pass)
+├── tests/                    # Unit tests (113 tests, 100% pass)
 ├── .env.example              # Credential template
 ├── .gitignore
 ├── pyproject.toml
