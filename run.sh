@@ -8,6 +8,8 @@
 # Examples:
 #   ./run.sh                          # Create board using .env credentials
 #   ./run.sh --name "My Career Plan"  # Create board with custom name
+#   ./run.sh --edit                   # Edit existing board (interactive)
+#   ./run.sh --edit --board-id ID     # Edit specific board by ID
 #   ./run.sh --dry-run                # Preview without creating
 #   ./run.sh --help                   # Show all options
 #
@@ -253,7 +255,20 @@ main() {
 
     # Run the application
     printf '\n'
-    step "Creating your Trello board..."
+
+    # Determine action message based on arguments
+    local action_msg="Creating your Trello board..."
+    for arg in "${args[@]:-}"; do
+        if [[ "$arg" == "--edit" ]]; then
+            action_msg="Starting edit session..."
+            break
+        fi
+        if [[ "$arg" == "--delete" || "$arg" == "-d" ]]; then
+            action_msg="Starting board deletion..."
+            break
+        fi
+    done
+    step "$action_msg"
     printf '\n'
 
     trello-career-planner "${args[@]:-}"

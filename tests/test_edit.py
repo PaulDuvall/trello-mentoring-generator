@@ -211,9 +211,9 @@ class TestAddCard:
         assert result is False
         mock_client.create_card.assert_not_called()
 
-    @patch("builtins.input", side_effect=["1", "", ""])
+    @patch("builtins.input", side_effect=["1", ""])
     def test_add_card_empty_name(self, mock_input, capsys):
-        """Returns False when card name is empty."""
+        """Returns False when user enters empty name to exit."""
         mock_client = MagicMock()
         mock_client.get_board_lists.return_value = [
             {"id": "list1", "name": "To Do"},
@@ -223,9 +223,9 @@ class TestAddCard:
 
         assert result is False
         captured = capsys.readouterr()
-        assert "cannot be empty" in captured.out
+        assert "Added 0 card(s)" in captured.out
 
-    @patch("builtins.input", side_effect=["1", "New Card", ""])
+    @patch("builtins.input", side_effect=["1", "New Card", "", ""])
     def test_add_card_success(self, mock_input, capsys):
         """Successfully adds a card."""
         mock_client = MagicMock()
@@ -243,9 +243,9 @@ class TestAddCard:
             description=None,
         )
         captured = capsys.readouterr()
-        assert "created successfully" in captured.out
+        assert "Created:" in captured.out
 
-    @patch("builtins.input", side_effect=["1", "New Card", "Card description"])
+    @patch("builtins.input", side_effect=["1", "New Card", "Card description", ""])
     def test_add_card_with_description(self, mock_input):
         """Adds a card with description."""
         mock_client = MagicMock()
@@ -274,7 +274,7 @@ class TestAddCard:
         captured = capsys.readouterr()
         assert "Failed to get lists" in captured.err
 
-    @patch("builtins.input", side_effect=["1", "New Card", ""])
+    @patch("builtins.input", side_effect=["1", "New Card", "", ""])
     def test_add_card_api_error_creating(self, mock_input, capsys):
         """Handles API error when creating card."""
         mock_client = MagicMock()
@@ -541,7 +541,7 @@ class TestShowMenu:
         assert result == "1"
         captured = capsys.readouterr()
         assert "Bulk Card Operations" in captured.out
-        assert "Add a new card" in captured.out
+        assert "Add cards" in captured.out
         assert "Move cards" in captured.out
         assert "Update card" in captured.out
         assert "Delete cards" in captured.out

@@ -158,14 +158,14 @@ def _collect_card_selections(cards: list[dict]) -> list[dict]:
 
 
 def add_card(client: TrelloClient, board_id: str) -> bool:
-    """Handle adding a new card to a list.
+    """Handle adding new cards to a list.
 
     Args:
         client: TrelloClient instance
         board_id: ID of the board
 
     Returns:
-        True if card was added, False otherwise
+        True if any cards were added, False otherwise
     """
     lists = _get_board_lists(client, board_id)
     if lists is None:
@@ -175,7 +175,7 @@ def add_card(client: TrelloClient, board_id: str) -> bool:
     if not selected_list:
         return False
 
-    return _create_card_interactive(client, selected_list["id"])
+    return _create_cards_interactive(client, selected_list, lists)
 
 
 def _get_board_lists(client: TrelloClient, board_id: str) -> list[dict] | None:
@@ -187,28 +187,58 @@ def _get_board_lists(client: TrelloClient, board_id: str) -> list[dict] | None:
         return None
 
 
-def _create_card_interactive(client: TrelloClient, list_id: str) -> bool:
-    """Create card with interactive input."""
-    try:
-        name = input("\nCard name: ").strip()
-        if not name:
-            print("Card name cannot be empty.")
-            return False
+def _create_cards_interactive(
+    client: TrelloClient, current_list: dict, all_lists: list[dict]
+) -> bool:
+    """Create multiple cards with interactive input.
 
-        description = input("Card description (optional, press Enter to skip): ").strip()
-        card = client.create_card(
-            list_id=list_id,
-            name=name,
-            description=description if description else None,
-        )
-        print(f"Card '{card['name']}' created successfully.")
-        return True
-    except (EOFError, KeyboardInterrupt):
-        print("\nCancelled.")
-        return False
-    except TrelloAPIError as e:
-        print(f"Failed to create card: {e}", file=sys.stderr)
-        return False
+    Args:
+        client: TrelloClient instance
+        current_list: Currently selected list dict
+        all_lists: All available lists for switching
+
+    Returns:
+        True if any cards were added, False otherwise
+    """
+    cards_added = 0
+    list_id = current_list["id"]
+    list_name = current_list["name"]
+
+    print(f"\nAdding cards to: {list_name}")
+    print("(Enter empty name to finish, 'switch' to change list)")
+
+    while True:
+        try:
+            name = input("\nCard name: ").strip()
+
+            if not name:
+                break
+
+            if name.lower() == "switch":
+                new_list = select_list(all_lists, "Select a new list")
+                if new_list:
+                    list_id = new_list["id"]
+                    list_name = new_list["name"]
+                    print(f"Switched to: {list_name}")
+                continue
+
+            description = input("Description (optional): ").strip()
+            card = client.create_card(
+                list_id=list_id,
+                name=name,
+                description=description if description else None,
+            )
+            cards_added += 1
+            print(f"Created: '{card['name']}' ({cards_added} total)")
+
+        except (EOFError, KeyboardInterrupt):
+            print("\nStopped.")
+            break
+        except TrelloAPIError as e:
+            print(f"Failed to create card: {e}", file=sys.stderr)
+
+    print(f"\nAdded {cards_added} card(s).")
+    return cards_added > 0
 
 
 def move_cards(client: TrelloClient, board_id: str) -> bool:
@@ -472,7 +502,7 @@ def show_menu() -> str:
     print("\n" + "=" * 40)
     print("Bulk Card Operations")
     print("=" * 40)
-    print("  1. Add a new card")
+    print("  1. Add cards")
     print("  2. Move cards between lists")
     print("  3. Update card properties")
     print("  4. Delete cards")
