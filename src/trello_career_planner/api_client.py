@@ -262,3 +262,77 @@ class TrelloClient:
         """
         params = {"filter": filter_type}
         return self._request("GET", "/members/me/boards", params=params)
+
+    def get_board_cards(self, board_id: str) -> list[dict[str, Any]]:
+        """Get all cards on a board.
+
+        Args:
+            board_id: ID of the board
+
+        Returns:
+            List of card data including id, name, idList, and other properties
+        """
+        return self._request("GET", f"/boards/{board_id}/cards")
+
+    def update_card(
+        self,
+        card_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        closed: bool | None = None,
+        due_date: str | None = None,
+        labels: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Update an existing card.
+
+        Args:
+            card_id: ID of the card to update
+            name: New card name
+            description: New card description
+            closed: Whether the card is archived
+            due_date: Due date in ISO format, or empty string to remove
+            labels: List of label IDs to set (replaces existing labels)
+
+        Returns:
+            Updated card data
+        """
+        params: dict[str, Any] = {}
+        if name is not None:
+            params["name"] = name
+        if description is not None:
+            params["desc"] = description
+        if closed is not None:
+            params["closed"] = str(closed).lower()
+        if due_date is not None:
+            params["due"] = due_date if due_date else "null"
+        if labels is not None:
+            params["idLabels"] = ",".join(labels) if labels else ""
+        return self._request("PUT", f"/cards/{card_id}", params=params)
+
+    def move_card(self, card_id: str, list_id: str, position: str | int = "bottom") -> dict[str, Any]:
+        """Move a card to a different list.
+
+        Args:
+            card_id: ID of the card to move
+            list_id: ID of the target list
+            position: Position in the target list (top, bottom, or numeric)
+
+        Returns:
+            Updated card data
+
+        Raises:
+            TrelloAPIError: If the card or target list does not exist
+        """
+        params = {
+            "idList": list_id,
+            "pos": position,
+        }
+        return self._request("PUT", f"/cards/{card_id}", params=params)
+
+    def delete_card(self, card_id: str) -> None:
+        """Delete a card.
+
+        Args:
+            card_id: ID of the card to delete
+        """
+        self._request("DELETE", f"/cards/{card_id}")

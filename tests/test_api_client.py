@@ -340,6 +340,297 @@ class TestListBoards:
         assert result == []
 
 
+class TestGetBoardCards:
+    """Tests for getting all cards on a board."""
+
+    @responses.activate
+    def test_get_board_cards(self, client):
+        """Gets all cards on a board."""
+        responses.add(
+            responses.GET,
+            "https://api.trello.com/1/boards/board123/cards",
+            json=[
+                {"id": "card1", "name": "Card 1", "idList": "list1"},
+                {"id": "card2", "name": "Card 2", "idList": "list2"},
+            ],
+            status=200,
+        )
+
+        result = client.get_board_cards("board123")
+
+        assert len(result) == 2
+        assert result[0]["id"] == "card1"
+        assert result[1]["idList"] == "list2"
+
+    @responses.activate
+    def test_get_board_cards_empty(self, client):
+        """Handles empty card list."""
+        responses.add(
+            responses.GET,
+            "https://api.trello.com/1/boards/board123/cards",
+            json=[],
+            status=200,
+        )
+
+        result = client.get_board_cards("board123")
+
+        assert result == []
+
+    @responses.activate
+    def test_get_board_cards_not_found(self, client):
+        """Raises error when board not found."""
+        responses.add(
+            responses.GET,
+            "https://api.trello.com/1/boards/invalid/cards",
+            json={"message": "invalid id"},
+            status=404,
+        )
+
+        with pytest.raises(TrelloAPIError) as exc_info:
+            client.get_board_cards("invalid")
+
+        assert exc_info.value.status_code == 404
+
+
+class TestUpdateCard:
+    """Tests for updating cards."""
+
+    @responses.activate
+    def test_update_card_name(self, client):
+        """Updates card name."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/card123",
+            json={"id": "card123", "name": "Updated Name"},
+            status=200,
+        )
+
+        result = client.update_card(card_id="card123", name="Updated Name")
+
+        assert result["name"] == "Updated Name"
+        assert "name=Updated" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_update_card_description(self, client):
+        """Updates card description."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/card123",
+            json={"id": "card123", "desc": "New description"},
+            status=200,
+        )
+
+        result = client.update_card(card_id="card123", description="New description")
+
+        assert result["desc"] == "New description"
+        assert "desc=New" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_update_card_closed(self, client):
+        """Updates card closed/archived status."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/card123",
+            json={"id": "card123", "closed": True},
+            status=200,
+        )
+
+        result = client.update_card(card_id="card123", closed=True)
+
+        assert result["closed"] is True
+        assert "closed=true" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_update_card_due_date(self, client):
+        """Updates card due date."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/card123",
+            json={"id": "card123", "due": "2025-12-31T23:59:59.000Z"},
+            status=200,
+        )
+
+        result = client.update_card(card_id="card123", due_date="2025-12-31T23:59:59.000Z")
+
+        assert result["due"] == "2025-12-31T23:59:59.000Z"
+
+    @responses.activate
+    def test_update_card_labels(self, client):
+        """Updates card labels."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/card123",
+            json={"id": "card123", "idLabels": ["label1", "label2"]},
+            status=200,
+        )
+
+        client.update_card(card_id="card123", labels=["label1", "label2"])
+
+        assert "idLabels=label1%2Clabel2" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_update_card_clear_labels(self, client):
+        """Clears card labels when empty list passed."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/card123",
+            json={"id": "card123", "idLabels": []},
+            status=200,
+        )
+
+        client.update_card(card_id="card123", labels=[])
+
+        assert "idLabels=" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_update_card_multiple_fields(self, client):
+        """Updates multiple card fields at once."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/card123",
+            json={"id": "card123", "name": "New Name", "desc": "New Desc"},
+            status=200,
+        )
+
+        result = client.update_card(
+            card_id="card123",
+            name="New Name",
+            description="New Desc",
+        )
+
+        assert result["name"] == "New Name"
+        request_url = responses.calls[0].request.url
+        assert "name=New" in request_url
+        assert "desc=New" in request_url
+
+    @responses.activate
+    def test_update_card_not_found(self, client):
+        """Raises error when card not found."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/invalid",
+            json={"message": "invalid id"},
+            status=404,
+        )
+
+        with pytest.raises(TrelloAPIError) as exc_info:
+            client.update_card(card_id="invalid", name="Test")
+
+        assert exc_info.value.status_code == 404
+
+
+class TestMoveCard:
+    """Tests for moving cards between lists."""
+
+    @responses.activate
+    def test_move_card(self, client):
+        """Moves card to different list."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/card123",
+            json={"id": "card123", "idList": "list456"},
+            status=200,
+        )
+
+        result = client.move_card(card_id="card123", list_id="list456")
+
+        assert result["idList"] == "list456"
+        assert "idList=list456" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_move_card_with_position(self, client):
+        """Moves card to specific position in list."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/card123",
+            json={"id": "card123", "idList": "list456"},
+            status=200,
+        )
+
+        client.move_card(card_id="card123", list_id="list456", position="top")
+
+        request_url = responses.calls[0].request.url
+        assert "idList=list456" in request_url
+        assert "pos=top" in request_url
+
+    @responses.activate
+    def test_move_card_numeric_position(self, client):
+        """Moves card to numeric position."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/card123",
+            json={"id": "card123", "idList": "list456"},
+            status=200,
+        )
+
+        client.move_card(card_id="card123", list_id="list456", position=1024)
+
+        assert "pos=1024" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_move_card_not_found(self, client):
+        """Raises error when card not found."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/invalid",
+            json={"message": "invalid id"},
+            status=404,
+        )
+
+        with pytest.raises(TrelloAPIError) as exc_info:
+            client.move_card(card_id="invalid", list_id="list456")
+
+        assert exc_info.value.status_code == 404
+
+    @responses.activate
+    def test_move_card_invalid_list(self, client):
+        """Raises error when target list invalid."""
+        responses.add(
+            responses.PUT,
+            "https://api.trello.com/1/cards/card123",
+            json={"message": "invalid value for idList"},
+            status=400,
+        )
+
+        with pytest.raises(TrelloAPIError) as exc_info:
+            client.move_card(card_id="card123", list_id="invalid_list")
+
+        assert exc_info.value.status_code == 400
+
+
+class TestDeleteCard:
+    """Tests for card deletion."""
+
+    @responses.activate
+    def test_delete_card(self, client):
+        """Deletes a card."""
+        responses.add(
+            responses.DELETE,
+            "https://api.trello.com/1/cards/card123",
+            json={"_value": None},
+            status=200,
+        )
+
+        client.delete_card("card123")
+
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_delete_card_not_found(self, client):
+        """Raises error when card not found."""
+        responses.add(
+            responses.DELETE,
+            "https://api.trello.com/1/cards/invalid",
+            json={"message": "invalid id"},
+            status=404,
+        )
+
+        with pytest.raises(TrelloAPIError) as exc_info:
+            client.delete_card("invalid")
+
+        assert exc_info.value.status_code == 404
+
+
 class TestErrorHandling:
     """Tests for error handling."""
 
