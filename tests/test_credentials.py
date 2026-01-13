@@ -73,18 +73,17 @@ class TestLoadCredentials:
             assert creds.api_key == "explicit_key"
             assert creds.token == "env_token"
 
-    def test_raises_when_no_api_key(self):
+    @patch("trello_career_planner.credentials.load_dotenv")
+    def test_raises_when_no_api_key(self, mock_dotenv):
         """Raises error when API key not found."""
         with patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("TRELLO_API_KEY", None)
-            os.environ.pop("TRELLO_TOKEN", None)
             with pytest.raises(CredentialError, match="API key not found"):
                 load_credentials()
 
-    def test_raises_when_no_token(self):
+    @patch("trello_career_planner.credentials.load_dotenv")
+    def test_raises_when_no_token(self, mock_dotenv):
         """Raises error when token not found."""
         with patch.dict(os.environ, {"TRELLO_API_KEY": "key"}, clear=True):
-            os.environ.pop("TRELLO_TOKEN", None)
             with pytest.raises(CredentialError, match="token not found"):
                 load_credentials()
 
