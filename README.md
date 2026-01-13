@@ -23,7 +23,7 @@ That's it! The script handles everything: virtual environment, dependencies, and
 
 - **Zero-friction setup** - Single command handles venv, dependencies, and execution
 - **Hybrid weekly sprint workflow** - Sprint columns for weekly execution + reference lists for strategy
-- Creates a fully populated Trello board with 8 lists and 21 cards
+- Creates a fully populated Trello board with 9 lists and 22 cards
 - Color-coded labels for prioritization and tracking
 - Customizable board names
 - **Board deletion** - Interactive selection with confirmation safeguards
@@ -126,11 +126,12 @@ The generated board uses a hybrid weekly sprint workflow:
 4. **Blocked / Review** - Items waiting on dependencies or feedback
 5. **Done This Week** - Completed this sprint cycle
 
-### Reference Lists
+### Tracking & Reference Lists
 
-6. **Career Goals & Strategy** - Long-term vision, target roles, skills inventory
-7. **Learning Resources** - Courses, books, certifications, interview prep
-8. **Completed** - Archive for historical tracking
+6. **Weekly Metrics** - Activity tracker for daily habits, learning, coding, job search, networking
+7. **Career Goals & Strategy** - Long-term vision, target roles, skills inventory
+8. **Learning Resources** - Courses, books, certifications, interview prep
+9. **Completed** - Archive for historical tracking
 
 ### Labels
 

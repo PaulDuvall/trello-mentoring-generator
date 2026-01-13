@@ -140,6 +140,42 @@ def get_tech_career_template() -> BoardTemplate:
             ],
         ),
         ListTemplate(
+            name="Weekly Metrics",
+            cards=[
+                CardTemplate(
+                    name="Weekly Activity Tracker",
+                    description="""Track your weekly progress on key career development activities.
+
+**Daily Habits:**
+- [ ] Days started by 9 AM: ___/7
+
+**Learning & Development:**
+- [ ] 60-min study sessions completed: ___
+- [ ] Notes written: ___
+- [ ] Certifications scheduled: ___
+- [ ] Certifications completed: ___
+
+**Coding & Projects:**
+- [ ] Hours worked on job project: ___
+- [ ] GitHub commits: ___
+- [ ] Coding projects started: ___
+
+**Job Search:**
+- [ ] Resume updates: ___
+- [ ] Companies researched: ___
+
+**Networking:**
+- [ ] LinkedIn updates: ___
+- [ ] Meetups scheduled: ___
+- [ ] Meetups attended: ___
+- [ ] 1:1 sessions scheduled: ___
+
+Copy this card each week to track progress over time.""",
+                    labels=["Career Goal"],
+                ),
+            ],
+        ),
+        ListTemplate(
             name="Career Goals & Strategy",
             cards=[
                 CardTemplate(
