@@ -27,6 +27,7 @@ That's it! The script handles everything: virtual environment, dependencies, and
 - Color-coded labels for prioritization and tracking
 - Customizable board names
 - **Board deletion** - Interactive selection with confirmation safeguards
+- **Bulk editing** - Interactive mode to add, move, update, and delete cards
 - Dry-run mode to preview without creating
 - Credential verification
 
@@ -81,6 +82,12 @@ That's it! The script handles everything: virtual environment, dependencies, and
 
 # Delete without confirmation prompt (use with caution)
 ./run.sh --delete --board-id BOARD_ID --yes
+
+# Edit an existing board (interactive mode)
+./run.sh --edit
+
+# Edit a specific board by ID
+./run.sh --edit --board-id BOARD_ID
 
 # Show setup help
 ./run.sh --setup-help
@@ -142,6 +149,58 @@ The generated board uses a hybrid weekly sprint workflow:
 - **Career Goal** (orange) - Strategic planning items
 - **Blocked** (yellow) - Items with dependencies
 
+## Bulk Edit Mode
+
+The `--edit` flag provides interactive bulk editing for existing boards:
+
+```bash
+./run.sh --edit
+```
+
+### Available Operations
+
+1. **Add a new card** - Create cards in any list with name and optional description
+2. **Move cards between lists** - Select multiple cards and move them to a different list
+3. **Update card properties** - Rename cards, update descriptions, or archive cards
+4. **Delete cards** - Remove cards with confirmation prompt
+
+### How It Works
+
+1. Select a board from your available Trello boards
+2. Choose an operation from the menu
+3. Follow the interactive prompts to select lists/cards
+4. Confirm destructive actions (delete/archive)
+5. Repeat or exit when done
+
+### Example Session
+
+```
+Your Trello boards:
+  1. Tech Career Planning
+  2. Project Ideas
+  0. Cancel
+
+Select a board number to edit: 1
+
+Editing board: Tech Career Planning
+
+========================================
+Bulk Card Operations
+========================================
+  1. Add a new card
+  2. Move cards between lists
+  3. Update card properties
+  4. Delete cards
+  0. Exit edit mode
+
+Select operation: 2
+
+Select source list:
+  1. Sprint Backlog
+  2. This Week
+  ...
+```
+
 ## Project Structure
 
 ```
@@ -154,9 +213,10 @@ trello-mentoring-generator/
 │       ├── api_client.py     # Trello REST API client
 │       ├── cli.py            # Command-line interface
 │       ├── credentials.py    # Credential management
+│       ├── edit.py           # Bulk edit functionality
 │       ├── generator.py      # Board generation logic
 │       └── template.py       # Career template definition
-├── tests/                    # Unit tests (113 tests, 100% pass)
+├── tests/                    # Unit tests (182 tests, 100% pass)
 ├── .env.example              # Credential template
 ├── .gitignore
 ├── pyproject.toml
