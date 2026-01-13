@@ -285,6 +285,61 @@ class TestDeleteBoard:
         assert len(responses.calls) == 1
 
 
+class TestListBoards:
+    """Tests for listing user boards."""
+
+    @responses.activate
+    def test_list_boards_default_filter(self, client):
+        """Lists open boards by default."""
+        responses.add(
+            responses.GET,
+            "https://api.trello.com/1/members/me/boards",
+            json=[
+                {"id": "board1", "name": "Board 1", "url": "https://trello.com/b/board1", "closed": False},
+                {"id": "board2", "name": "Board 2", "url": "https://trello.com/b/board2", "closed": False},
+            ],
+            status=200,
+        )
+
+        result = client.list_boards()
+
+        assert len(result) == 2
+        assert result[0]["name"] == "Board 1"
+        assert "filter=open" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_list_boards_all_filter(self, client):
+        """Lists all boards including closed."""
+        responses.add(
+            responses.GET,
+            "https://api.trello.com/1/members/me/boards",
+            json=[
+                {"id": "board1", "name": "Open Board", "closed": False},
+                {"id": "board2", "name": "Closed Board", "closed": True},
+            ],
+            status=200,
+        )
+
+        result = client.list_boards(filter_type="all")
+
+        assert len(result) == 2
+        assert "filter=all" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_list_boards_empty(self, client):
+        """Handles empty board list."""
+        responses.add(
+            responses.GET,
+            "https://api.trello.com/1/members/me/boards",
+            json=[],
+            status=200,
+        )
+
+        result = client.list_boards()
+
+        assert result == []
+
+
 class TestErrorHandling:
     """Tests for error handling."""
 

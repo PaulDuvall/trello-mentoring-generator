@@ -3,7 +3,13 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from trello_career_planner.cli import main, create_parser
+from trello_career_planner.cli import (
+    main,
+    create_parser,
+    select_board_for_deletion,
+    confirm_deletion,
+    delete_board_command,
+)
 from trello_career_planner.generator import GeneratedBoard
 from trello_career_planner.credentials import CredentialError
 from trello_career_planner.api_client import TrelloAPIError
@@ -79,6 +85,27 @@ class TestArgumentParser:
         """Accepts -e and --env-file."""
         args = parser.parse_args(["-e", "/path/to/.env"])
         assert args.env_file == "/path/to/.env"
+
+    def test_delete_flag(self, parser):
+        """Accepts -d and --delete."""
+        args = parser.parse_args(["-d"])
+        assert args.delete is True
+
+        args = parser.parse_args(["--delete"])
+        assert args.delete is True
+
+    def test_board_id_flag(self, parser):
+        """Accepts --board-id."""
+        args = parser.parse_args(["--board-id", "abc123"])
+        assert args.board_id == "abc123"
+
+    def test_yes_flag(self, parser):
+        """Accepts -y and --yes."""
+        args = parser.parse_args(["-y"])
+        assert args.yes is True
+
+        args = parser.parse_args(["--yes"])
+        assert args.yes is True
 
 
 class TestMainFunction:
@@ -251,3 +278,156 @@ class TestMainFunction:
         mock_create.assert_called_once()
         call_kwargs = mock_create.call_args[1]
         assert call_kwargs["verbose"] is True
+
+
+class TestDeleteCommand:
+    """Tests for the delete board command."""
+
+    @patch("trello_career_planner.cli.load_credentials")
+    @patch("trello_career_planner.cli.validate_credentials")
+    @patch("trello_career_planner.cli.TrelloClient")
+    def test_delete_with_board_id_and_yes(
+        self, mock_client_class, mock_validate, mock_load, capsys
+    ):
+        """Deletes board when --board-id and --yes provided."""
+        mock_load.return_value = MagicMock(api_key="a" * 32, token="b" * 64)
+        mock_validate.return_value = True
+        mock_client = MagicMock()
+        mock_client.get_board.return_value = {"id": "board123", "name": "Test Board"}
+        mock_client_class.return_value = mock_client
+
+        result = main(["--delete", "--board-id", "board123", "--yes"])
+
+        assert result == 0
+        mock_client.delete_board.assert_called_once_with("board123")
+        captured = capsys.readouterr()
+        assert "deleted successfully" in captured.out
+
+    @patch("trello_career_planner.cli.load_credentials")
+    @patch("trello_career_planner.cli.validate_credentials")
+    @patch("trello_career_planner.cli.TrelloClient")
+    def test_delete_board_not_found(
+        self, mock_client_class, mock_validate, mock_load, capsys
+    ):
+        """Returns error when board not found."""
+        mock_load.return_value = MagicMock(api_key="a" * 32, token="b" * 64)
+        mock_validate.return_value = True
+        mock_client = MagicMock()
+        mock_client.get_board.side_effect = TrelloAPIError("Not found", 404)
+        mock_client_class.return_value = mock_client
+
+        result = main(["--delete", "--board-id", "nonexistent", "--yes"])
+
+        assert result == 1
+        captured = capsys.readouterr()
+        assert "not found" in captured.err.lower()
+
+    @patch("trello_career_planner.cli.load_credentials")
+    @patch("trello_career_planner.cli.validate_credentials")
+    @patch("trello_career_planner.cli.TrelloClient")
+    @patch("trello_career_planner.cli.confirm_deletion")
+    def test_delete_cancelled_by_user(
+        self, mock_confirm, mock_client_class, mock_validate, mock_load, capsys
+    ):
+        """Returns 0 when user cancels deletion."""
+        mock_load.return_value = MagicMock(api_key="a" * 32, token="b" * 64)
+        mock_validate.return_value = True
+        mock_client = MagicMock()
+        mock_client.get_board.return_value = {"id": "board123", "name": "Test Board"}
+        mock_client_class.return_value = mock_client
+        mock_confirm.return_value = False
+
+        result = main(["--delete", "--board-id", "board123"])
+
+        assert result == 0
+        mock_client.delete_board.assert_not_called()
+        captured = capsys.readouterr()
+        assert "cancelled" in captured.out.lower()
+
+    @patch("trello_career_planner.cli.load_credentials")
+    @patch("trello_career_planner.cli.validate_credentials")
+    @patch("trello_career_planner.cli.TrelloClient")
+    @patch("trello_career_planner.cli.select_board_for_deletion")
+    def test_delete_interactive_no_boards(
+        self, mock_select, mock_client_class, mock_validate, mock_load, capsys
+    ):
+        """Handles interactive mode when user cancels."""
+        mock_load.return_value = MagicMock(api_key="a" * 32, token="b" * 64)
+        mock_validate.return_value = True
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_select.return_value = None
+
+        result = main(["--delete"])
+
+        assert result == 0
+        mock_client.delete_board.assert_not_called()
+
+
+class TestSelectBoardForDeletion:
+    """Tests for the board selection function."""
+
+    def test_select_board_no_boards(self, capsys):
+        """Returns None when no boards available."""
+        mock_client = MagicMock()
+        mock_client.list_boards.return_value = []
+
+        result = select_board_for_deletion(mock_client)
+
+        assert result is None
+        captured = capsys.readouterr()
+        assert "No open boards found" in captured.out
+
+    @patch("builtins.input", return_value="0")
+    def test_select_board_user_cancels(self, mock_input, capsys):
+        """Returns None when user selects 0 to cancel."""
+        mock_client = MagicMock()
+        mock_client.list_boards.return_value = [
+            {"id": "board1", "name": "Board 1"},
+        ]
+
+        result = select_board_for_deletion(mock_client)
+
+        assert result is None
+
+    @patch("builtins.input", return_value="1")
+    def test_select_board_valid_selection(self, mock_input, capsys):
+        """Returns board ID when valid selection made."""
+        mock_client = MagicMock()
+        mock_client.list_boards.return_value = [
+            {"id": "board1", "name": "Board 1"},
+            {"id": "board2", "name": "Board 2"},
+        ]
+
+        result = select_board_for_deletion(mock_client)
+
+        assert result == "board1"
+
+
+class TestConfirmDeletion:
+    """Tests for the deletion confirmation function."""
+
+    @patch("builtins.input", return_value="yes")
+    def test_confirm_yes(self, mock_input):
+        """Returns True for 'yes' response."""
+        assert confirm_deletion("Test Board") is True
+
+    @patch("builtins.input", return_value="y")
+    def test_confirm_y(self, mock_input):
+        """Returns True for 'y' response."""
+        assert confirm_deletion("Test Board") is True
+
+    @patch("builtins.input", return_value="no")
+    def test_confirm_no(self, mock_input):
+        """Returns False for 'no' response."""
+        assert confirm_deletion("Test Board") is False
+
+    @patch("builtins.input", return_value="")
+    def test_confirm_empty(self, mock_input):
+        """Returns False for empty response."""
+        assert confirm_deletion("Test Board") is False
+
+    @patch("builtins.input", side_effect=KeyboardInterrupt)
+    def test_confirm_keyboard_interrupt(self, mock_input):
+        """Returns False on keyboard interrupt."""
+        assert confirm_deletion("Test Board") is False

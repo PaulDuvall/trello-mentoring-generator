@@ -250,3 +250,15 @@ class TrelloClient:
             List of label data
         """
         return self._request("GET", f"/boards/{board_id}/labels")
+
+    def list_boards(self, filter_type: str = "open") -> list[dict[str, Any]]:
+        """List all boards for the authenticated user.
+
+        Args:
+            filter_type: Filter for boards - 'all', 'open', 'closed', 'members', 'organization', 'public', 'starred'
+
+        Returns:
+            List of board data including id, name, url, and closed status
+        """
+        params = {"filter": filter_type}
+        return self._request("GET", "/members/me/boards", params=params)

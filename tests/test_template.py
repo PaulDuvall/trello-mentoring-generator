@@ -81,7 +81,7 @@ class TestTechCareerTemplate:
         assert len(template.labels) >= 4
         label_names = [l.name for l in template.labels]
         assert "High Priority" in label_names
-        assert "Completed" in label_names
+        assert "Blocked" in label_names  # Sprint workflow label
 
     def test_labels_have_valid_colors(self, template):
         """All labels have valid Trello colors."""
@@ -96,9 +96,13 @@ class TestTechCareerTemplate:
         """Template has multiple lists."""
         assert len(template.lists) >= 5
         list_names = [l.name for l in template.lists]
-        assert "Career Goals" in list_names
-        assert "Skills Assessment" in list_names
-        assert "Learning & Development" in list_names
+        # Sprint workflow lists
+        assert "Sprint Backlog" in list_names
+        assert "This Week" in list_names
+        assert "In Progress" in list_names
+        # Reference lists
+        assert "Career Goals & Strategy" in list_names
+        assert "Learning Resources" in list_names
 
     def test_all_lists_have_cards(self, template):
         """Each list has at least one card."""
@@ -127,17 +131,44 @@ class TestTechCareerTemplate:
                     )
 
     def test_template_coverage(self, template):
-        """Template covers key career planning areas."""
+        """Template covers key career planning areas via hybrid sprint workflow."""
         list_names = {l.name for l in template.lists}
-        expected_areas = {
-            "Career Goals",
-            "Skills Assessment",
-            "Learning & Development",
-            "Networking",
-            "Job Search Preparation",
+        # Sprint workflow lists
+        expected_sprint_lists = {
+            "Sprint Backlog",
+            "This Week",
+            "In Progress",
+            "Done This Week",
+            "Completed",
         }
-        for area in expected_areas:
-            assert area in list_names, f"Missing expected area: {area}"
+        for area in expected_sprint_lists:
+            assert area in list_names, f"Missing expected sprint list: {area}"
+
+        # Reference/strategy lists
+        expected_reference_lists = {
+            "Career Goals & Strategy",
+            "Learning Resources",
+        }
+        for area in expected_reference_lists:
+            assert area in list_names, f"Missing expected reference list: {area}"
+
+    def test_sprint_workflow_structure(self, template):
+        """Template has proper sprint workflow structure."""
+        list_names = [l.name for l in template.lists]
+        # Sprint lists should be in order at the beginning
+        sprint_lists = ["Sprint Backlog", "This Week", "In Progress", "Blocked / Review", "Done This Week"]
+        for sprint_list in sprint_lists:
+            assert sprint_list in list_names, f"Missing sprint list: {sprint_list}"
+
+    def test_blocked_label_exists(self, template):
+        """Template has a Blocked label for sprint workflow."""
+        label_names = [l.name for l in template.labels]
+        assert "Blocked" in label_names
+
+    def test_quick_win_label_exists(self, template):
+        """Template has a Quick Win label for prioritization."""
+        label_names = [l.name for l in template.labels]
+        assert "Quick Win" in label_names
 
     def test_total_cards_reasonable(self, template):
         """Template has a reasonable number of cards."""
